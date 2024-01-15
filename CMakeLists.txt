@@ -22,7 +22,14 @@ if (HAVE_LIB_M)
 endif (HAVE_LIB_M)
 
 add_executable(poisson main.c
-        solver.c)
+        solver.c
+        mpi_solver.c
+        array_helpers.c
+        array_helpers.h
+        log.c
+        log.h
+        test.c
+        test.h)
 
 target_link_libraries(poisson ${MPI_C_LIBRARIES})
 target_link_libraries(poisson ${EXTRA_LIBS})
