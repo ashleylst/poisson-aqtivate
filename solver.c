@@ -36,6 +36,7 @@
 int solver(double *v, double *f, int nx, int ny, double eps, int nmax)
 {
     int n = 0;
+    // e = error
     double e = 2. * eps;
     double *vp;
 
@@ -50,12 +51,13 @@ int solver(double *v, double *f, int nx, int ny, double eps, int nmax)
             for (int iy = 1; iy < (ny-1); iy++)
             {
                 double d;
-
+                // x(k+1)
                 vp[iy*nx+ix] = -0.25 * (f[iy*nx+ix] -
                                         (v[nx*iy     + ix+1] + v[nx*iy     + ix-1] +
                                          v[nx*(iy+1) + ix  ] + v[nx*(iy-1) + ix  ]));
-
+                // x(k+1) - x(k)
                 d = fabs(vp[nx*iy+ix] - v[nx*iy+ix]);
+                // max(x(k+1) - x(k))
                 e = (d > e) ? d : e;
             }
         }
