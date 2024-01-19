@@ -33,6 +33,7 @@
 #include <math.h>
 #include "test.h"
 #include "log.h"
+#include "sys/time.h"
 
 #ifndef NX
 #define NX 16
@@ -62,6 +63,7 @@ void init(double * v, double * f, const int grid_size, MPI_Comm comm){
     int block_x = NX / grid_size;
     int block_y = NY / grid_size;
 
+#pragma omp parallel for default(none) shared(block_y, block_x, coords, f, v)
     for(int i = 0; i < block_y; i++)
     {
         for(int j = 0; j < block_x; j++)
@@ -109,6 +111,9 @@ int main(int argc, char *argv[])
     int periods[2] = {0, 0};
     MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &grid_comm);
 
+    struct timeval begin, end;
+    gettimeofday(&begin, 0);
+
     // initialize the grid
     init(&v[0], &f[0], q, grid_comm);
 
@@ -126,6 +131,14 @@ int main(int argc, char *argv[])
     */
 
     mpi_solver(&v[0], &f[0], NX, NY, EPS, NMAX, q, grid_comm);
+
+    // Stop measuring time and calculate the elapsed time
+    gettimeofday(&end, 0);
+    long seconds = end.tv_sec - begin.tv_sec;
+    long microseconds = end.tv_usec - begin.tv_usec;
+    double elapsed = seconds + microseconds*1e-6;
+
+    printf("Time measured: %.3f seconds.\n", elapsed);
 
     //distribute_vector(NY*NX, &v[0], &local_v, grid_comm);
 

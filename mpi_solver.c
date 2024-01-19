@@ -6,6 +6,7 @@
 #include "array_helpers.h"
 #include "log.h"
 #include "test.h"
+#include "omp.h"
 
 void evaluate_e(double *e, const double k1, const double k){
     double d = fabs(k1 - k);
@@ -190,6 +191,8 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
         //print_arr(recvbuf, 2*(nx+ny));
 
         // update middle part
+        omp_set_num_threads(2);
+#pragma omp parallel for default(none) shared(nx, ny, vp, f, v, recvbuf)
         for(int ix = 1; ix < (nx-1); ix++)
         {
             for(int iy = 1; iy < (ny-1); iy++)
@@ -202,6 +205,7 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
         // update top part
         if(coords[0] != 0)
         {
+#pragma omp parallel for default(none) shared(nx, ny, vp, f, v, recvbuf, coords, x, y)
             for(int i = 0; i < nx; i++)
             {
                 if(is_big_boundary(i, 0, coords[0], coords[1], nx, ny, x, y))
@@ -215,6 +219,7 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
         //update bottom part
         if(coords[0] != block_num - 1)
         {
+#pragma omp parallel for default(none) shared(nx, ny, vp, f, v, recvbuf, coords, x, y)
             for(int i = 0; i < nx; i++)
             {
                 if(is_big_boundary(i, ny - 1, coords[0], coords[1], nx, ny, x, y))
@@ -228,6 +233,7 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
         // update left part
         if(coords[1] != 0)
         {
+#pragma omp parallel for default(none) shared(nx, ny, vp, f, v, recvbuf, coords, x, y)
             for(int i = 0; i < ny; i++)
             {
                 if(is_big_boundary(0, i, coords[0], coords[1], nx, ny, x, y))
@@ -241,6 +247,7 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
         // update right part
         if(coords[1] != block_num - 1)
         {
+#pragma omp parallel for default(none) shared(nx, ny, vp, f, v, recvbuf, coords, x, y)
             for(int i = 0; i < ny; i++)
             {
                 if(is_big_boundary(nx - 1, i, coords[0], coords[1], nx, ny, x, y))
@@ -255,6 +262,7 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
         //print_arr(vp, nx*ny);
 
         double local_w = 0.0;
+#pragma omp parallel for default(none) shared(nx, ny, coords, x, y, local_e, vp, v, local_w)
         for(int ix = 0; ix < nx; ix++)
         {
             for(int iy = 0; iy < ny; iy++)
@@ -264,11 +272,14 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
                     continue;
                 }
                 // e = max(x(k+1) - x(k))
+//#pragma omp task default(none) shared(local_e, vp, v, nx, ix, iy)
                 evaluate_e(&local_e, vp[nx * iy + ix], v[nx * iy + ix]);
                 // v = vp
+//#pragma omp task default(none) shared(v, vp, nx) firstprivate(ix, iy)
                 v[nx * iy + ix] = vp[nx * iy + ix];
 
                 // maintain correctness for thread num = 1
+//#pragma omp task default(none) shared(local_w, v, nx) firstprivate(ix, iy)
                 local_w += fabs(v[nx * iy + ix]);
             }
         }
@@ -305,12 +316,12 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
             global_w /= (x*y);
             global_e /= global_w;
             //printf("global_w = %f\n", global_w);
-            //printf("global_e = %f\n", global_e);
+            printf("global_e = %f\n", global_e);
         }
 
         MPI_Bcast(&global_e, 1, MPI_DOUBLE, rank00, comm);
         local_e = global_e;
-        printf("local_e = %f\n", local_e);
+        //printf("local_e = %f\n", local_e);
 
         //free(msg);
         MPI_Barrier(comm);
