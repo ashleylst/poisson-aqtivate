@@ -262,7 +262,7 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
         //print_arr(vp, nx*ny);
 
         double local_w = 0.0;
-#pragma omp parallel for default(none) shared(nx, ny, coords, x, y, local_e, vp, v, local_w)
+//#pragma omp parallel for default(none) shared(nx, ny, coords, x, y, local_e, vp, v, local_w)
         for(int ix = 0; ix < nx; ix++)
         {
             for(int iy = 0; iy < ny; iy++)
@@ -272,14 +272,10 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
                     continue;
                 }
                 // e = max(x(k+1) - x(k))
-//#pragma omp task default(none) shared(local_e, vp, v, nx, ix, iy)
                 evaluate_e(&local_e, vp[nx * iy + ix], v[nx * iy + ix]);
                 // v = vp
-//#pragma omp task default(none) shared(v, vp, nx) firstprivate(ix, iy)
                 v[nx * iy + ix] = vp[nx * iy + ix];
-
                 // maintain correctness for thread num = 1
-//#pragma omp task default(none) shared(local_w, v, nx) firstprivate(ix, iy)
                 local_w += fabs(v[nx * iy + ix]);
             }
         }
