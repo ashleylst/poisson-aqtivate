@@ -262,7 +262,7 @@ int mpi_solver(double *v, double *f, int x, int y, double eps, int nmax, int blo
         //print_arr(vp, nx*ny);
 
         double local_w = 0.0;
-//#pragma omp parallel for default(none) shared(nx, ny, coords, x, y, local_e, vp, v, local_w)
+#pragma omp parallel for default(none) shared(nx, ny, coords, x, y, vp, v) reduction(+:local_w) reduction(max:local_e)
         for(int ix = 0; ix < nx; ix++)
         {
             for(int iy = 0; iy < ny; iy++)
